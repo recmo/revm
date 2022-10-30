@@ -5,18 +5,21 @@ mod stack;
 
 pub use bytecode::{Bytecode, BytecodeLocked, BytecodeState};
 pub use contract::Contract;
+use hashbrown::HashMap;
 pub use memory::Memory;
 pub use stack::Stack;
 
 use crate::{
     instructions::{eval, Return},
-    Gas, Host, Spec, USE_GAS,
+    Gas, Host, Spec, USE_GAS, OpCode,
 };
 use bytes::Bytes;
 use core::ops::Range;
 
 pub const STACK_LIMIT: u64 = 1024;
 pub const CALL_STACK_LIMIT: u64 = 1024;
+
+const NGRAM: usize = 0;
 
 pub struct Interpreter {
     /// Contract information and invoking data
@@ -36,6 +39,10 @@ pub struct Interpreter {
     /// Memory limit. See [`crate::CfgEnv`].
     #[cfg(feature = "memory_limit")]
     pub memory_limit: u64,
+
+    // Execution trace n-grams
+    opcode_window: u64, // Last 8 opcodes
+    opcode_counts: HashMap<u64, u64>,
 }
 
 impl Interpreter {
@@ -52,6 +59,9 @@ impl Interpreter {
             return_data_buffer: Bytes::new(),
             contract,
             gas: Gas::new(gas_limit),
+
+            opcode_window: 0,
+            opcode_counts: HashMap::new(),
         }
     }
 
@@ -70,6 +80,9 @@ impl Interpreter {
             contract,
             gas: Gas::new(gas_limit),
             memory_limit,
+
+            opcode_window: 0,
+            opcode_counts: HashMap::new(),
         }
     }
 
@@ -122,6 +135,20 @@ impl Interpreter {
                 }
             }
             let opcode = unsafe { *self.instruction_pointer };
+
+            if NGRAM > 0 {
+                self.opcode_window <<= 8;
+                self.opcode_window |= opcode as u64;
+
+                const NGRAM_MASK: u64 = (1 << (NGRAM * 8)) - 1;
+                let key = self.opcode_window & NGRAM_MASK;
+                if let Some(x) = self.opcode_counts.get_mut(&key) {
+                    *x += 1;
+                } else {
+                    self.opcode_counts.insert(key, 1);
+                }
+            }
+
             // Safety: In analysis we are doing padding of bytecode so that we are sure that last.
             // byte instruction is STOP so we are safe to just increment program_counter bcs on last instruction
             // it will do noop and just stop execution of this contract
@@ -148,6 +175,24 @@ impl Interpreter {
                 self.return_range.start,
                 self.return_range.end - self.return_range.start,
             ))
+        }
+    }
+
+    pub fn dump(&self) {
+        if NGRAM == 0 {
+            return;
+        }
+        let mut table = Vec::new();
+        for (opcodes, count) in self.opcode_counts.iter() {
+            table.push((*opcodes, *count));
+        }
+        table.sort_by_key(|entry| entry.1);
+        table.reverse();
+        for (opcodes, count) in table {
+            for opcode in opcodes.to_be_bytes().iter().skip(8 - NGRAM) {
+                print!("{:12}", OpCode::try_from_u8(*opcode).unwrap().as_str());
+            }
+            println!("{count:6}");
         }
     }
 }

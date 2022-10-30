@@ -679,6 +679,8 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> EVMImpl<'a, GSPEC, DB, 
                 self.data.journaled_state.checkpoint_revert(checkpoint);
             }
 
+            interp.dump();
+
             (exit_reason, interp.gas, interp.return_value())
         };
 
