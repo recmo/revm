@@ -235,6 +235,9 @@ pub fn eval<H: Host, S: Spec>(opcode: u8, interp: &mut Interpreter, host: &mut H
         opcode::LOG2 => host::log::<H, S>(interp, 2, host),
         opcode::LOG3 => host::log::<H, S>(interp, 3, host),
         opcode::LOG4 => host::log::<H, S>(interp, 4, host),
+
+        opcode::PUSH2_JUMPI => control::push2_jumpi(interp),
+
         opcode::SELFDESTRUCT => host::selfdestruct::<H, S>(interp, host),
         opcode::CREATE => host::create::<H, S>(interp, false, host), //check
         opcode::CREATE2 => host::create::<H, S>(interp, true, host), //check

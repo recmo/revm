@@ -1,6 +1,6 @@
 use super::contract::{AnalysisData, ValidJumpAddress};
 use crate::{common::keccak256, opcode, spec_opcode_gas, Spec, KECCAK_EMPTY};
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use primitive_types::H256;
 use std::sync::Arc;
 
@@ -21,7 +21,7 @@ pub enum BytecodeState {
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Bytecode {
     #[cfg_attr(feature = "with-serde", serde(with = "crate::models::serde_hex_bytes"))]
-    bytecode: Bytes,
+    pub bytecode: Bytes,
     hash: H256,
     state: BytecodeState,
 }
@@ -184,7 +184,7 @@ impl Bytecode {
         } = self.to_analysed::<SPEC>();
         if let BytecodeState::Analysed { len, jumptable } = state {
             BytecodeLocked {
-                bytecode,
+                bytecode: BytesMut::from(&bytecode[..]),
                 len,
                 hash,
                 jumptable,
@@ -263,8 +263,10 @@ impl Bytecode {
     }
 }
 
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BytecodeLocked {
-    bytecode: Bytes,
+    bytecode: BytesMut,
     len: usize,
     hash: H256,
     jumptable: ValidJumpAddress,
@@ -274,6 +276,7 @@ impl BytecodeLocked {
     pub fn as_ptr(&self) -> *const u8 {
         self.bytecode.as_ptr()
     }
+
     pub fn len(&self) -> usize {
         self.len
     }
@@ -288,7 +291,7 @@ impl BytecodeLocked {
 
     pub fn unlock(self) -> Bytecode {
         Bytecode {
-            bytecode: self.bytecode,
+            bytecode: self.bytecode.into(),
             hash: self.hash,
             state: BytecodeState::Analysed {
                 len: self.len,
@@ -298,6 +301,10 @@ impl BytecodeLocked {
     }
     pub fn bytecode(&self) -> &[u8] {
         self.bytecode.as_ref()
+    }
+
+    pub fn bytecode_mut(&mut self) -> &mut [u8] {
+        self.bytecode.as_mut()
     }
 
     pub fn original_bytecode_slice(&self) -> &[u8] {

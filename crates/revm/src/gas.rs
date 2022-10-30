@@ -3,7 +3,7 @@ mod constants;
 
 pub use calc::*;
 pub use constants::*;
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Gas {
     limit: u64,
     used: u64,

@@ -151,6 +151,8 @@ pub const STATICCALL: u8 = 0xfa;
 pub const SELFDESTRUCT: u8 = 0xff;
 pub const CHAINID: u8 = 0x46;
 
+pub const PUSH2_JUMPI: u8 = 0xC1;
+
 impl OpCode {
     pub fn try_from_u8(opcode: u8) -> Option<OpCode> {
         OPCODE_JUMPMAP[opcode as usize].map(|_| OpCode(opcode))
@@ -487,7 +489,7 @@ macro_rules! gas_opcodee {
             /* 0xbe */ OpInfo::none(),
             /* 0xbf */ OpInfo::none(),
             /* 0xc0 */ OpInfo::none(),
-            /* 0xc1 */ OpInfo::none(),
+            /* 0xc1 */ OpInfo::gas_block_end(gas::VERYLOW + gas::HIGH),
             /* 0xc2 */ OpInfo::none(),
             /* 0xc3 */ OpInfo::none(),
             /* 0xc4 */ OpInfo::none(),
@@ -821,7 +823,7 @@ pub const OPCODE_JUMPMAP: [Option<&'static str>; 256] = [
     /* 0xbe */ None,
     /* 0xbf */ None,
     /* 0xc0 */ None,
-    /* 0xc1 */ None,
+    /* 0xc1 */ Some("PUSH2_JUMPI"),
     /* 0xc2 */ None,
     /* 0xc3 */ None,
     /* 0xc4 */ None,

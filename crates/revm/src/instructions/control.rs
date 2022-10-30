@@ -34,6 +34,22 @@ pub fn jumpi(interp: &mut Interpreter) -> Return {
     }
 }
 
+pub fn push2_jumpi(interp: &mut Interpreter) -> Return {
+    pop!(interp, value);
+    if value != U256::ZERO {
+        let dest1 = unsafe { *interp.instruction_pointer.add(0) };
+        let dest0 = unsafe { *interp.instruction_pointer.add(1) };
+        let dest = ((dest1 as usize) << 8) + dest0 as usize;
+
+        interp.instruction_pointer = unsafe { interp.contract.bytecode.as_ptr().add(dest + 1) };
+        Return::Continue
+
+    } else {
+        interp.instruction_pointer = unsafe { interp.instruction_pointer.add(3) };
+        interp.add_next_gas_block(interp.program_counter() - 1)
+    }
+}
+
 pub fn jumpdest(interp: &mut Interpreter) -> Return {
     gas!(interp, gas::JUMPDEST);
     interp.add_next_gas_block(interp.program_counter() - 1)

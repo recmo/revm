@@ -3,8 +3,10 @@ use crate::{alloc::vec::Vec, CallContext, Spec};
 use bytes::Bytes;
 use primitive_types::H160;
 use ruint::aliases::U256;
-use std::sync::Arc;
+use std::{sync::Arc, fmt::Debug};
 
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Contract {
     /// Contracts data
     pub input: Bytes,
@@ -28,12 +30,18 @@ pub enum Analysis {
 
 const JUMP_MASK: u32 = 0x80000000;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AnalysisData {
     /// This variable packs two informations:
     /// IS_JUMP (1bit) | gas block ( 31bits)
     is_jump_and_gas_block: u32,
+}
+
+impl Debug for AnalysisData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({:?}, {:})", self.is_jump(), self.gas_block())
+    }
 }
 
 impl AnalysisData {
